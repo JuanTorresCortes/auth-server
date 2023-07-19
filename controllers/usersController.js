@@ -17,8 +17,18 @@ const register = async (req, res) => {
     const savedUser = await newUser.save();
     res.status(200).json({ success: true, user: savedUser });
   } catch (error) {
+    console.log(error.code);
+    console.log(error.keyValue);
+    console.log(error.name);
     console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    if (error.name === "mongoServerError" && error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        massage: "Error",
+        error: { email: "Email already exists" },
+      });
+    }
+    res.status(500).json({ success: false, message: "Error", error: error });
   }
 };
 
@@ -48,7 +58,22 @@ const login = async (req, res) => {
   }
 };
 
+const validateUser = async (req, res) => {
+  try {
+    const decodedData = res.locals.decodedToken;
+    const foundUser = await User.findOne({ _id: decodedData.userId });
+    if (!foundUser) {
+      res.status(400).json({ success: false, message: "User not found" });
+    }
+    res.status(200).json({ success: true, email: foundUser.email });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
+  validateUser,
 };
